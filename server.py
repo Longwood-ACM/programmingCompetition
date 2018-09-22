@@ -422,8 +422,8 @@ def assignmentsID(assignmentID):
 						opfile = open(ofilename, "r")
 						output = opfile.read()
 						opfile.close()
-						if output:
-							os.remove(ofilename)
+						#if output:
+						#	os.remove(ofilename)
 						#RENDER ERROR
 				elif language == "Go":
 					pass
@@ -727,10 +727,7 @@ def scoreboard():
 	db = getDB()
 	students = db.execute("SELECT firstName, lastName, score FROM login WHERE position='STUDENT'").fetchall()
 	print(students)
-	board = ""
-	for a in students:
-		board += "<p>%s %s: %d</p>" % (a[0], a[1], a[2])
-	return board
+	return render_template('scoreboard.html', scores = students)
 
 @app.teardown_appcontext
 def closeDB(error):
