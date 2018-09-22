@@ -407,7 +407,7 @@ def assignmentsID(assignmentID):
 				filename = './userdirs/%s/assignment%s-%s.go' % (session['username'], assignmentID, userID)
 			code = request.form['code']
 			inp = request.form.get('cin')
-			timeout = int(request.form['timeout'])
+			timeout = 60
 			codefile = open(filename, "w")
 			codefile.write(code)
 			codefile.close()
@@ -446,11 +446,11 @@ def assignmentsID(assignmentID):
 					infile.close()
 					eOut.write(t[1])
 					if platform.system() == 'Linux':
-						exitstat = os.system('timeout %d %s < %s >> %s' % (int(request.form['timeout']), exe, ifilename, ofilename))
+						exitstat = os.system('timeout %d %s < %s >> %s' % (timeout, exe, ifilename, ofilename))
 						if os.WEXITSTATUS(exitstat) == 124:
 							os.system('echo "Program timed out on test %s" >> %s' % (t[0], diffFile))
 					elif platform.system() == 'Darwin':
-						exitstat = os.system('gtimeout %d %s < %s >> %s' % (int(request.form['timeout']), exe, ifilename, ofilename))
+						exitstat = os.system('gtimeout %d %s < %s >> %s' % (timeout, exe, ifilename, ofilename))
 						if os.WEXITSTATUS(exitstat) == 124:
 							os.system('echo "Program timed out on test %s" >> %s' % (t[0], diffFile))
 				eOut.close()
@@ -489,11 +489,11 @@ def assignmentsID(assignmentID):
 					infile.close()
 					eOut.write(t[1])
 					if platform.system() == 'Linux':
-						exitstat = os.system('timeout %d %s < %s >> %s' % (int(request.form['timeout']), exe, ifilename, ofilename))
+						exitstat = os.system('timeout %d %s < %s >> %s' % (timeout, exe, ifilename, ofilename))
 						if os.WEXITSTATUS(exitstat) == 124:
 							os.system('echo "Program timed out on test %s" >> %s' % (t[0], diffFile))
 					elif platform.system() == 'Darwin':
-						exitstat = os.system('gtimeout %d %s < %s >> %s' % (int(request.form['timeout']), exe, ifilename, ofilename))
+						exitstat = os.system('gtimeout %d %s < %s >> %s' % (timeout, exe, ifilename, ofilename))
 						if os.WEXITSTATUS(exitstat) == 124:
 							os.system('echo "Program timed out on test %s" >> %s' % (t[0], diffFile))
 				eOut.close()
@@ -560,11 +560,11 @@ def assignmentsID(assignmentID):
 					infile.close()
 					eOut.write(t[1])
 					if platform.system() == 'Linux':
-						exitstat = os.system('timeout %d %s < %s >> %s' % (int(request.form['timeout']), exe, ifilename, ofilename))
+						exitstat = os.system('timeout %d %s < %s >> %s' % (timeout, exe, ifilename, ofilename))
 						if os.WEXITSTATUS(exitstat) == 124:
 							os.system('echo "Program timed out on test %s" >> %s' % (t[0], diffFile))
 					elif platform.system() == 'Darwin':
-						exitstat = os.system('gtimeout %d %s < %s >> %s' % (int(request.form['timeout']), exe, ifilename, ofilename))
+						exitstat = os.system('gtimeout %d %s < %s >> %s' % (timeout, exe, ifilename, ofilename))
 						if os.WEXITSTATUS(exitstat) == 124:
 							os.system('echo "Program timed out on test %s" >> %s' % (t[0], diffFile))
 				eOut.close()
