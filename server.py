@@ -1,6 +1,8 @@
 from flask import Flask, g, render_template, request, redirect, url_for, escape, session
 from werkzeug.utils import secure_filename
 import sqlite3
+#from pymongo import MongoClient
+from flask_pymongo import PyMongo
 import os, sys, platform
 from hashlib import md5
 from datetime import datetime as d
@@ -9,6 +11,7 @@ UPLOAD_FOLDER = 'uploads/'
 ALLOWED_EXTENSIONS = (['cpp', 'c'])
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MONGO_URI'] = "mongodb://localhost:27018/acm"
 app.config.from_object(__name__)
 app.config.update(dict(
 	SECRET_KEY="acmdongle",
@@ -16,6 +19,7 @@ app.config.update(dict(
 	USERNAME="admin",
 	PASSWORD="default",
 ))
+mongo = PyMongo(app)
 
 def checkLogged():
 	if 'username' in session:
@@ -105,21 +109,23 @@ def root():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
 	if request.method == 'POST':
-		db = getDB()
+		#db = getDB()
 		error = None
 		validlogin = False
 
 		password = md5(request.form['password'].encode('utf-8')).hexdigest()
+		validlogin = mongo.db.users.find_one({"username": request.form['username'], "password": password})
 
-		validlogin = db.execute('SELECT * FROM login WHERE email = ? AND password = ?', (request.form['username'], password)).fetchall()
+		#validlogin = db.execute('SELECT * FROM login WHERE email = ? AND password = ?', (request.form['username'], password)).fetchall()
 
 		if validlogin:
 			session['username'] = request.form['username']
 			session['password'] = request.form['password']
 			return redirect(url_for('courses'))
 		else:
-			emailexists = db.execute('SELECT * FROM login where email = ?', (request.form['username'],)).fetchall()
-			if emailexists:
+			userexists = mongo.db.users.find_one({'username': request.form['username']})
+			#emailexists = db.execute('SELECT * FROM login where email = ?', (request.form['username'],)).fetchall()
+			if userexists:
 				error = "Password does not match"
 			else:
 				error = "Username is not registered"

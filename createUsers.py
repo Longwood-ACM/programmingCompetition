@@ -1,10 +1,59 @@
-#!/bin/python3
-#!/usr/bin/env python3
-
-import sqlite3
+from pymongo import MongoClient
 import os
 from hashlib import md5
 
+def createUsers():
+	client = MongoClient("mongodb://localhost:27018/")
+	db = client.acm
+	users = db.users
+
+	users.create_index("username", unique=True)
+
+	password = md5("password".encode('utf-8')).hexdigest()
+	user ={"firstName": "Longwood",
+	"lastName": "ACM",
+	"password": password,
+	"username": "longwoodacm",
+	"position": "instructor",
+	"question": "petName",
+	"answer": "Captain"
+	}
+	inserted = users.insert_one(user).inserted_id
+	print(inserted)
+	userdir = r'./userdirs/longwoodacm'
+	if not os.path.exists(userdir):
+		os.makedirs(userdir)
+
+	password = md5("password".encode('utf-8')).hexdigest()
+	user ={"firstName": "First",
+	"lastName": "Team",
+	"password": password,
+	"username": "Team1",
+	"position": "student",
+	"question": "petName",
+	"answer": "Captain"
+	}
+	inserted = users.insert_one(user).inserted_id
+	print(inserted)
+	userdir = r'./userdirs/Team1'
+	if not os.path.exists(userdir):
+		os.makedirs(userdir)
+
+	password = md5("password".encode('utf-8')).hexdigest()
+	user ={"firstName": "Second",
+	"lastName": "Team",
+	"password": password,
+	"username": "Team2",
+	"position": "student",
+	"question": "petName",
+	"answer": "Captain"
+	}
+	inserted = users.insert_one(user).inserted_id
+	print(inserted)
+	userdir = r'./userdirs/Team2'
+	if not os.path.exists(userdir):
+		os.makedirs(userdir)
+'''
 # Create the schema
 def createUsers():
 	conn = sqlite3.connect('acm.db')
@@ -39,7 +88,7 @@ def createUsers():
 
 	conn.commit()
 	conn.close()
-
+'''
 # Could put more in later
 def main():
 	createUsers()
