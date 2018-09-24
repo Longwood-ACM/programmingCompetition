@@ -3,6 +3,7 @@ from werkzeug.utils import secure_filename
 import sqlite3
 #from pymongo import MongoClient
 from flask_pymongo import PyMongo
+from bson.objectid import ObjectId
 import os, sys, platform
 from hashlib import md5
 from datetime import datetime as d
@@ -205,20 +206,38 @@ def forgot2(userID):
 @app.route('/courses')
 def courses():
 	if checkLogged():
-		db = getDB()
-		utype = db.execute("SELECT position FROM login WHERE email=?", (session['username'],)).fetchall()[0][0]
-		if utype == 'INSTRUCTOR':
+		#db = getDB()
+		utype = mongo.db.users.find_one({"username": session['username']})['position']
+		print(utype)
+		#utype = db.execute("SELECT position FROM login WHERE email=?", (session['username'],)).fetchall()[0][0]
+		if utype == 'instructor':
 			cs = db.execute("SELECT title, classID FROM class JOIN login on class.instructorID=login.userID WHERE login.email=?", (session['username'],)).fetchall()
 			for i in range(len(cs)):
-				cs[i] = list(cs[i])
+				cs.append(list(cs[i]))
 				cs[i].append(db.execute("SELECT assignment.title, assignment.assignmentID FROM assignment JOIN class ON class.classID=assignment.classID WHERE class.title=?", (cs[i][0],)).fetchall())
 			return render_template('professor.html', user=session['username'], courses=cs)
 
-		elif utype == 'STUDENT':
-			cs = db.execute("SELECT title FROM class NATURAL JOIN takes NATURAL JOIN login WHERE login.email=?", (session['username'],)).fetchall()
-			for i in range(len(cs)):
-				cs[i] = list(cs[i])
-				cs[i].append(db.execute("SELECT assignment.title, assignment.assignmentID FROM assignment JOIN class ON class.classID=assignment.classID WHERE class.title=?", (cs[i][0],)).fetchall())
+		elif utype == 'student':
+			cs = []
+			i = 0
+			for c in mongo.db.courses.find({"students": session['username']}):
+			#cs = db.execute("SELECT title FROM class NATURAL JOIN takes NATURAL JOIN login WHERE login.email=?", (session['username'],)).fetchall()
+				#print(c['title'])
+				cc =[]
+				cc.append(c['title'])
+				#print(cc)
+				assigns = []
+				#cs[i].append(db.execute("SELECT assignment.title, assignment.assignmentID FROM assignment JOIN class ON class.classID=assignment.classID WHERE class.title=?", (cs[i][0],)).fetchall())
+				for a in mongo.db.assignments.find({"class": c['_id']}):
+					cassign = []
+					cassign.append(a['title'])
+					#print(assigns)
+					cassign.append(str(a['_id']))
+					assigns.append(cassign)
+				#print(assigns)
+				cc.append(assigns)
+				print(cc)
+				cs.append(cc)		
 			return render_template('courses.html', user=session['username'], courses=cs)
 	return redirect(url_for('root'))
 
@@ -365,23 +384,26 @@ def editCourse(courseID):
 	students = db.execute("SELECT firstName, lastName, email FROM login JOIN takes ON takes.userID=login.userID WHERE takes.classID=?", (courseID,)).fetchall()
 	return render_template('editcourse.html', user=session['username'], title=info[0][2], secNum=info[0][3], year=info[0][5], sem=info[0][4], students = students)
 
-@app.route('/assignments/<int:assignmentID>', methods=["GET", "POST"])
+@app.route('/assignments/<assignmentID>', methods=["GET", "POST"])
 def assignmentsID(assignmentID):
 	if not checkLogged():
 		return home()
-	db = getDB()
-	a = list(db.execute("SELECT * FROM assignment WHERE assignmentID = ?", (assignmentID,)).fetchall())
-	unfdate = a[0][4]
+	#db = getDB()
+	#a = list(db.execute("SELECT * FROM assignment WHERE assignmentID = ?", (assignmentID,)).fetchall())
+	a = mongo.db.assignments.find_one({"_id": ObjectId(assignmentID)})
+	unfdate = a['dueDate']
 	undate = unfdate.split("-")
 	date = "%s/%s/%s" % (undate[2], undate[1], undate[0])
-	utype = db.execute("SELECT position FROM login WHERE email=?", (session['username'],)).fetchall()[0][0]
-	if utype == "STUDENT":
+	#utype = db.execute("SELECT position FROM login WHERE email=?", (session['username'],)).fetchall()[0][0]
+	utype = mongo.db.users.find_one({"username": session['username']})['position']
+	if utype == "student":
 		code = ""
 		output = ""
 		comment = ""
 		grade = ""
-		userID = db.execute("SELECT userID FROM login WHERE email=?", (session['username'],)).fetchall()[0][0]
-		uexist = db.execute("SELECT completed FROM uploads WHERE userID=? AND assignmentID=?", (userID, assignmentID)).fetchall()
+		#userID = db.execute("SELECT userID FROM login WHERE email=?", (session['username'],)).fetchall()[0][0]
+		#uexist = db.execute("SELECT completed FROM uploads WHERE userID=? AND assignmentID=?", (userID, assignmentID)).fetchall()
+		uexist = mongo.db.uploads.find_one({"username": session["username"], "assignment": ObjectId(assignmentID)})
 		completed = ""
 		if uexist:
 			completed = uexist[0][0]
@@ -525,7 +547,7 @@ def assignmentsID(assignmentID):
 		if completed:
 			return render_template("assignment.html", user=session['username'], title = a[0][1], body = a[0][2], date = date, assignmentID = assignmentID, grade=grade, comment="COMPLETED", code=code)
 		return render_template("assignment.html", user=session['username'], title = a[0][1], body = a[0][2], date = date, assignmentID = assignmentID, grade=grade, comment=comment, code=code)
-	elif utype == "INSTRUCTOR":
+	elif utype == "instructor":
 		uploads = db.execute("SELECT login.firstName, login.lastName, login.userID, uploads.fileLocation FROM login NATURAL JOIN uploads WHERE uploads.assignmentID = ?", (assignmentID,)).fetchall()
 		userID = request.form.get('student')
 		if userID == "default" or userID == None:

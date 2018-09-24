@@ -12,7 +12,7 @@ def createUsers():
 	password = md5("password".encode('utf-8')).hexdigest()
 	user ={"firstName": "Longwood",
 	"lastName": "ACM",
-	"password": password,
+	"inserted = password": password,
 	"username": "longwoodacm",
 	"position": "instructor",
 	"question": "petName",
@@ -53,6 +53,74 @@ def createUsers():
 	userdir = r'./userdirs/Team2'
 	if not os.path.exists(userdir):
 		os.makedirs(userdir)
+
+	courses = db.courses
+	course = {"instructor": "longwoodacm",
+	"title": "Programming Competition 2018",
+	"section": 1,
+	"semester": "Fall",
+	"year": 2018,
+	"students": ["Team1", "Team2"]
+	}
+	cinserted = courses.insert_one(course).inserted_id
+	print(cinserted)
+
+	course = {"instructor": "longwoodacm",
+	"title": "Programming Competition 2019",
+	"section": 1,
+	"semester": "Fall",
+	"year": 2019,
+	"students": ["Team1", "Team2"]
+	}
+	cinserted = courses.insert_one(course).inserted_id
+	print(cinserted)
+
+	assignments = db.assignments
+	assignment =[{"title": "Problem #0",
+	"body": "Placeholder",
+	"class": cinserted,
+	"dueDate": "2018-10-10"
+	},{"title": "Problem #1",
+	"body": "Placeholder",
+	"class": cinserted,
+	"dueDate": "2018-10-10"
+	},{"title": "Problem #2",
+	"body": "Placeholder",
+	"class": cinserted,
+	"dueDate": "2018-10-10"
+	},{"title": "Problem #3",
+	"body": "Placeholder",
+	"class": cinserted,
+	"dueDate": "2018-10-10"
+	},{"title": "Problem #4",
+	"body": "Placeholder",
+	"class": cinserted,
+	"dueDate": "2018-10-10"
+	},{"title": "Problem #5",
+	"body": "Placeholder",
+	"class": cinserted,
+	"dueDate": "2018-10-10"
+	},{"title": "Problem #6",
+	"body": "Placeholder",
+	"class": cinserted,
+	"dueDate": "2018-10-10"
+	},{"title": "Problem #7",
+	"body": "Placeholder",
+	"class": cinserted,
+	"dueDate": "2018-10-10"
+	},{"title": "Problem #8",
+	"body": "Placeholder",
+	"class": cinserted,
+	"dueDate": "2018-10-10"
+	},{"title": "Problem #9",
+	"body": "Placeholder",
+	"class": cinserted,
+	"dueDate": "2018-10-10"
+	}]
+	inserted = assignments.insert_many(assignment).inserted_ids
+	print(inserted)
+
+
 '''
 # Create the schema
 def createUsers():

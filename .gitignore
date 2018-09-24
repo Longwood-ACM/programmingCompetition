@@ -6,3 +6,5 @@ userdirs/
 *.log
 *.pyc
 .DS_Store
+db/*
+mongolog*
