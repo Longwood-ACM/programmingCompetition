@@ -388,21 +388,15 @@ def editCourse(courseID):
 def assignmentsID(assignmentID):
 	if not checkLogged():
 		return home()
-	#db = getDB()
-	#a = list(db.execute("SELECT * FROM assignment WHERE assignmentID = ?", (assignmentID,)).fetchall())
 	a = mongo.db.assignments.find_one({"_id": ObjectId(assignmentID)})
 	unfdate = a['dueDate']
 	undate = unfdate.split("-")
 	date = "%s/%s/%s" % (undate[2], undate[1], undate[0])
-	#utype = db.execute("SELECT position FROM login WHERE email=?", (session['username'],)).fetchall()[0][0]
 	utype = mongo.db.users.find_one({"username": session['username']})['position']
 	if utype == "student":
 		code = ""
 		output = ""
 		comment = ""
-		grade = ""
-		#userID = db.execute("SELECT userID FROM login WHERE email=?", (session['username'],)).fetchall()[0][0]
-		#uexist = db.execute("SELECT completed FROM uploads WHERE userID=? AND assignmentID=?", (userID, assignmentID)).fetchall()
 		uexist = mongo.db.uploads.find_one({"username": session["username"], "assignment": ObjectId(assignmentID)})
 		completed = ""
 		if uexist:
@@ -411,21 +405,15 @@ def assignmentsID(assignmentID):
 			completed = 0
 		filename = ""
 		language = "C++"
-		#fexist = db.execute("SELECT fileLocation FROM uploads WHERE userID=? AND assignmentID=?", (userID, assignmentID)).fetchall()
 		f = mongo.db.uploads.find_one({"username": session['username'], "assignment": ObjectId(assignmentID)})
 		if f:
 			fexist = f['fileLocation']
 			if fexist:
 				filename = fexist
-				#language = db.execute("SELECT language FROM uploads WHERE userID=? AND assignmentID=?", (userID, assignmentID)).fetchall()[0][0]
 				language = f['language']
 		ifilename = './userdirs/%s/infile' % session['username']
 		ofilename = './userdirs/%s/outfile' % session['username']
 		exe = './userdirs/%s/assignment%s-%s' % (session['username'], assignmentID, session['username'])
-		#ugrade = db.execute("SELECT grade, comment FROM grades WHERE userID=? AND assignmentID=?", (userID, assignmentID)).fetchall()
-		'''if ugrade:
-			grade = ugrade[0][0]
-			comment = ugrade[0][1]'''
 		if request.method == "POST":
 			language = request.form['language']
 			if not checkToday(unfdate):
@@ -461,24 +449,19 @@ def assignmentsID(assignmentID):
 					pass
 				elif language == "Python":
 					pass
-				#userID = db.execute("SELECT userID FROM login WHERE email=?", (session['username'],)).fetchall()[0][0]
-				#submitted = db.execute("SELECT uploadID FROM uploads WHERE assignmentID = ? AND userID = ?", (assignmentID, userID)).fetchall()
 				submitted = mongo.db.uploads.find_one({"assignment": ObjectId(assignmentID), "username": session['username']})
 				if not submitted:
-					#db.execute("INSERT INTO uploads(userID, assignmentID, fileLocation, type, language, completed) VALUES(?, ?, ?, 'SUBMISSION', ?, 0)", (userID, assignmentID, filename, language))
-					inserted = mongo.db.uploads.insert_one({"username": session["username"], "assignment": ObjectId(assignmentID), "fileLocation": filename, "type": "SUBMISSION", "language": language, "completed": 0})
-					#db.commit()
-				#tests = db.execute("SELECT testCases.inputValue, testCases.outputValue FROM testCases NATURAL JOIN login WHERE assignmentID = ? AND (type = 'PUBLIC' OR (type = 'PRIVATE' AND userID = ?))", (assignmentID, userID)).fetchall()
+					inserted = mongo.db.uploads.insert_one({"username": session["username"], "assignment": ObjectId(assignmentID), "fileLocation": filename, "type": "SUBMISSION", "language": language, "completed": 0}).inserted_id
 				diffFile = "./userdirs/%s/diffFile" % session['username']
 				if os.path.exists(diffFile):
 					os.remove(diffFile)
 				eOutFile = "./userdirs/%s/expectedOut" % session['username']
 				eOut = open(eOutFile, "w")
-				for t in mongo.db.testCases.find({"username": session['username'], "priv": "private"}):
+				for t in mongo.db.testCases.find({"username": session['username'], "priv": "private", "assignment": ObjectId(assignmentID)}):
 					infile = open(ifilename, "w")
-					infile.write(t[0])
+					infile.write(t['inputValue'])
 					infile.close()
-					eOut.write(t[1])
+					eOut.write(t['outputValue'])
 					if platform.system() == 'Linux':
 						exitstat = os.system('timeout %d %s < %s >> %s' % (timeout, exe, ifilename, ofilename))
 						if os.WEXITSTATUS(exitstat) == 124:
@@ -506,22 +489,20 @@ def assignmentsID(assignmentID):
 					pass
 				elif language == "Python":
 					pass
-				userID = db.execute("SELECT userID FROM login WHERE email = ?", (session['username'],)).fetchall()[0][0]
 				submitted = db.execute("SELECT uploadID FROM uploads WHERE assignmentID = ? AND userID = ?", (assignmentID, userID)).fetchall()
 				if not submitted:
 					db.execute("INSERT INTO uploads(userID, assignmentID, fileLocation, type, language, completed) VALUES(?, ?, ?, 'SUBMISSION', ?, 0)", (userID, assignmentID, filename, language))
 					db.commit()
-				tests = db.execute("SELECT testCases.inputValue, testCases.outputValue FROM testCases NATURAL JOIN login WHERE assignmentID = ? AND (type = 'PUBLIC' OR type = 'HIDDEN')", (assignmentID,)).fetchall()
 				diffFile = "./userdirs/%s/diffFile" % session['username']
 				if os.path.exists(diffFile):
 					os.remove(diffFile)
 				eOutFile = "./userdirs/%s/expectedOut" % session['username']
 				eOut = open(eOutFile, "w")
-				for t in tests:
+				for t in mongo.db.testCases.find({ "assignment": ObjectId(assignmentID), "priv": "hidden"}):
 					infile = open(ifilename, "w")
-					infile.write(t[0])
+					infile.write(t['inputValue'])
 					infile.close()
-					eOut.write(t[1])
+					eOut.write(t['outputValue'])
 					if platform.system() == 'Linux':
 						exitstat = os.system('timeout %d %s < %s >> %s' % (timeout, exe, ifilename, ofilename))
 						if os.WEXITSTATUS(exitstat) == 124:
@@ -675,40 +656,34 @@ def editAssignment(assignmentID):
 def test(assignmentID):
 	if not checkLogged():
 		return home()
-	#db = getDB()
-	#utype = db.execute("SELECT position FROM login WHERE email=?", (session['username'],)).fetchall()[0][0]
 	u = mongo.db.users.find_one({"username": session['username']})
 	if u['position'] == "student":
 		if request.method == "POST":
-			#userID = db.execute("SELECT userID FROM login WHERE email=?", (session['username'],)).fetchall()[0][0]
 			inpV = request.form['input'] + '\n'
 			outV = request.form['output'] + '\n'
 			if not inpV and outV:
 				return render_template('testCases.html', user=session['username'], cases = cases, input = inpV, output = outV, error = "Please add an input and output.") 
-			#exists = db.execute("SELECT testID FROM testCases WHERE (inputValue = ? AND outputValue = ? AND userID = ?) OR type == 'PUBLIC'", (inpV, outV, userID)).fetchall()
 			exists = mongo.db.testCases.find_one({"username": session['username'], "assignment": ObjectId(assignmentID), "inputValue": inpV, "outputValue": outV, "priv": "private"})
 			if exists:
-				#cases = db.execute("SELECT inputValue, outputValue FROM testCases JOIN login ON login.userID=testCases.userID WHERE testCases.type='PUBLIC' OR (testCases.type='PRIVATE' AND login.email=?)", (session['username'],)).fetchall()
 				cases = []
 				for case in mongo.db.testCases.find({"username": session['username'], "assignment": ObjectId(assignmentID), "inputValue": inpV, "outputValue": outV, "priv": "private"}):
 					cases.append(case)
 				return render_template('testCases.html', user=session['username'], cases = cases, input = inpV, output = outV, error = "Test Case already exists.", assignmentID=assignmentID) 
-			#db.execute("INSERT INTO testCases(inputValue, outputValue, userID, type, assignmentID) VALUES(?, ?, ?, 'PRIVATE', ?)", (inpV, outV, userID, assignmentID))
 			mongo.db.testCases.insert_one({"username": session['username'], "inputValue": inpV, "outputValue": outV, "priv": "private", "assignment": ObjectId(assignmentID)})
-			#db.commit()
-			#cases = db.execute("SELECT inputValue, outputValue FROM testCases JOIN login ON login.userID=testCases.userID WHERE testCases.type='PUBLIC' OR (testCases.type='PRIVATE' AND login.email=?)", (session['username'],)).fetchall()
 			cases = []
 			for case in mongo.db.testCases.find({"username": session['username'], "assignment": ObjectId(assignmentID), "inputValue": inpV, "outputValue": outV, "priv": "private"}):
-				cases.append(case)
+				c = []
+				c.append(case['inputValue'])
+				c.append(case['outputValue'])
+				cases.append(c)
 			return render_template('testCases.html', user=session['username'], cases = cases, assignmentID=assignmentID)
-		#db = getDB()
-		#title = db.execute("SELECT title FROM assignment WHERE assignmentID=?", (assignmentID,)).fetchall()[0][0]
 		title = mongo.db.assignments.find_one({'_id': ObjectId(assignmentID)})['title']
-		print(title)
-		#cases = db.execute("SELECT inputValue, outputValue FROM testCases JOIN login ON login.userID=testCases.userID WHERE assignmentID=? AND testCases.type='PUBLIC' OR (testCases.type='PRIVATE' AND login.email=?)", (assignmentID, session['username'])).fetchall()
 		cases = []
 		for case in mongo.db.testCases.find({"username": session['username'], "assignment": ObjectId(assignmentID), "priv": "private"}):
-			cases.append(case)
+			c = []
+			c.append(case['inputValue'])
+			c.append(case['outputValue'])
+			cases.append(c)
 		return render_template('testCases.html', user=session['username'], cases = cases, title = title, assignmentID=assignmentID)
 	elif utype == "INSTRUCTOR":
 		db = getDB()
