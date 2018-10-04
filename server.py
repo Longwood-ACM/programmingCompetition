@@ -489,10 +489,13 @@ def assignmentsID(assignmentID):
 					pass
 				elif language == "Python":
 					pass
-				submitted = db.execute("SELECT uploadID FROM uploads WHERE assignmentID = ? AND userID = ?", (assignmentID, userID)).fetchall()
+				submitted = mongo.db.uploads.find_one({"assignment": ObjectId(assignmentID), "username": session['username']})
 				if not submitted:
-					db.execute("INSERT INTO uploads(userID, assignmentID, fileLocation, type, language, completed) VALUES(?, ?, ?, 'SUBMISSION', ?, 0)", (userID, assignmentID, filename, language))
-					db.commit()
+					inserted = mongo.db.uploads.insert_one({"username": session["username"], "assignment": ObjectId(assignmentID), "fileLocation": filename, "type": "SUBMISSION", "language": language, "completed": 0}).inserted_id
+				#submitted = db.execute("SELECT uploadID FROM uploads WHERE assignmentID = ? AND userID = ?", (assignmentID, userID)).fetchall()
+				#if not submitted:
+				#	db.execute("INSERT INTO uploads(userID, assignmentID, fileLocation, type, language, completed) VALUES(?, ?, ?, 'SUBMISSION', ?, 0)", (userID, assignmentID, filename, language))
+				#	db.commit()
 				diffFile = "./userdirs/%s/diffFile" % session['username']
 				if os.path.exists(diffFile):
 					os.remove(diffFile)
@@ -518,15 +521,19 @@ def assignmentsID(assignmentID):
 				outfile.close()
 				if not output:
 					#INCREMENT SCORE
-					completed = db.execute("SELECT * from uploads WHERE userID=? AND assignmentID=? AND completed=1", (userID, assignmentID)).fetchall()
+					completed = mongo.db.uploads.find_one({"assignment": ObjectId(assignmentID)})['completed']
+					#completed = db.execute("SELECT * from uploads WHERE userID=? AND assignmentID=? AND completed=1", (userID, assignmentID)).fetchall()
 					if not completed:
-						score = db.execute("SELECT score FROM login WHERE userID=?", (userID,)).fetchall()[0][0]
-						db.execute("UPDATE login SET score=? WHERE userID=?", (score+1, userID))
-						db.execute("UPDATE uploads SET completed=1 WHERE userID=? AND assignmentID=?", (userID,assignmentID))
-						db.commit()
-						return render_template("assignment.html", user=session['username'], title = a[0][1], body = a[0][2], date = date, assignmentID = assignmentID, grade=grade, comment="COMPLETED", code=code, output=output, language=language)
+						completed = mongo.db.uploads.update_one({"assignment": ObjectId(assignmentID)}, {"$set": {"completed": 1}})
+						score = mongo.db.users.find_one({"username": session['username']})['score']
+						update = mongo.db.users.update_one({"username": session['username']}, {"$set": {"score": score+1}})
+						#score = db.execute("SELECT score FROM login WHERE userID=?", (userID,)).fetchall()[0][0]
+						#db.execute("UPDATE login SET score=? WHERE userID=?", (score+1, userID))
+						#db.execute("UPDATE uploads SET completed=1 WHERE userID=? AND assignmentID=?", (userID,assignmentID))
+						#db.commit()
+						return render_template("assignment.html", user=session['username'], title = a['title'], body = a['body'], date = date, assignmentID = assignmentID, grade=grade, comment="COMPLETED", code=code, output=output, language=language)
 				elif output:
-					return render_template("assignment.html", user=session['username'], title = a[0][1], body = a[0][2], date = date, assignmentID = assignmentID, grade=grade, comment=comment, code=code, output=output, language=language)
+					return render_template("assignment.html", user=session['username'], title = a['title'], body = a['body'], date = date, assignmentID = assignmentID, grade=grade, comment=comment, code=code, output=output, language=language)
 		if os.path.exists(filename):
 			cfile = open(filename, "r")
 			code = cfile.read()

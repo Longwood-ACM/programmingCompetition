@@ -16,7 +16,8 @@ def createUsers():
 	"username": "longwoodacm",
 	"position": "instructor",
 	"question": "petName",
-	"answer": "Captain"
+	"answer": "Captain",
+	"score": 0
 	}
 	inserted = users.insert_one(user).inserted_id
 	print(inserted)
@@ -31,7 +32,8 @@ def createUsers():
 	"username": "Team1",
 	"position": "student",
 	"question": "petName",
-	"answer": "Captain"
+	"answer": "Captain",
+	"score": 0
 	}
 	inserted = users.insert_one(user).inserted_id
 	print(inserted)
@@ -46,7 +48,8 @@ def createUsers():
 	"username": "Team2",
 	"position": "student",
 	"question": "petName",
-	"answer": "Captain"
+	"answer": "Captain",
+	"score": 0
 	}
 	inserted = users.insert_one(user).inserted_id
 	print(inserted)
