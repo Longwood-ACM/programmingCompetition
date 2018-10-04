@@ -1,7 +1,6 @@
 from flask import Flask, g, render_template, request, redirect, url_for, escape, session
 from werkzeug.utils import secure_filename
 import sqlite3
-#from pymongo import MongoClient
 from flask_pymongo import PyMongo
 from bson.objectid import ObjectId
 import os, sys, platform
@@ -110,22 +109,16 @@ def root():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
 	if request.method == 'POST':
-		#db = getDB()
 		error = None
 		validlogin = False
-
 		password = md5(request.form['password'].encode('utf-8')).hexdigest()
 		validlogin = mongo.db.users.find_one({"username": request.form['username'], "password": password})
-
-		#validlogin = db.execute('SELECT * FROM login WHERE email = ? AND password = ?', (request.form['username'], password)).fetchall()
-
 		if validlogin:
 			session['username'] = request.form['username']
 			session['password'] = request.form['password']
 			return redirect(url_for('courses'))
 		else:
 			userexists = mongo.db.users.find_one({'username': request.form['username']})
-			#emailexists = db.execute('SELECT * FROM login where email = ?', (request.form['username'],)).fetchall()
 			if userexists:
 				error = "Password does not match"
 			else:
@@ -206,10 +199,8 @@ def forgot2(userID):
 @app.route('/courses')
 def courses():
 	if checkLogged():
-		#db = getDB()
 		utype = mongo.db.users.find_one({"username": session['username']})['position']
 		print(utype)
-		#utype = db.execute("SELECT position FROM login WHERE email=?", (session['username'],)).fetchall()[0][0]
 		if utype == 'instructor':
 			cs = db.execute("SELECT title, classID FROM class JOIN login on class.instructorID=login.userID WHERE login.email=?", (session['username'],)).fetchall()
 			for i in range(len(cs)):
@@ -221,20 +212,14 @@ def courses():
 			cs = []
 			i = 0
 			for c in mongo.db.courses.find({"students": session['username']}):
-			#cs = db.execute("SELECT title FROM class NATURAL JOIN takes NATURAL JOIN login WHERE login.email=?", (session['username'],)).fetchall()
-				#print(c['title'])
 				cc =[]
 				cc.append(c['title'])
-				#print(cc)
 				assigns = []
-				#cs[i].append(db.execute("SELECT assignment.title, assignment.assignmentID FROM assignment JOIN class ON class.classID=assignment.classID WHERE class.title=?", (cs[i][0],)).fetchall())
 				for a in mongo.db.assignments.find({"class": c['_id']}):
 					cassign = []
 					cassign.append(a['title'])
-					#print(assigns)
 					cassign.append(str(a['_id']))
 					assigns.append(cassign)
-				#print(assigns)
 				cc.append(assigns)
 				print(cc)
 				cs.append(cc)		
@@ -492,10 +477,6 @@ def assignmentsID(assignmentID):
 				submitted = mongo.db.uploads.find_one({"assignment": ObjectId(assignmentID), "username": session['username']})
 				if not submitted:
 					inserted = mongo.db.uploads.insert_one({"username": session["username"], "assignment": ObjectId(assignmentID), "fileLocation": filename, "type": "SUBMISSION", "language": language, "completed": 0}).inserted_id
-				#submitted = db.execute("SELECT uploadID FROM uploads WHERE assignmentID = ? AND userID = ?", (assignmentID, userID)).fetchall()
-				#if not submitted:
-				#	db.execute("INSERT INTO uploads(userID, assignmentID, fileLocation, type, language, completed) VALUES(?, ?, ?, 'SUBMISSION', ?, 0)", (userID, assignmentID, filename, language))
-				#	db.commit()
 				diffFile = "./userdirs/%s/diffFile" % session['username']
 				if os.path.exists(diffFile):
 					os.remove(diffFile)
@@ -522,15 +503,10 @@ def assignmentsID(assignmentID):
 				if not output:
 					#INCREMENT SCORE
 					completed = mongo.db.uploads.find_one({"assignment": ObjectId(assignmentID)})['completed']
-					#completed = db.execute("SELECT * from uploads WHERE userID=? AND assignmentID=? AND completed=1", (userID, assignmentID)).fetchall()
 					if not completed:
 						completed = mongo.db.uploads.update_one({"assignment": ObjectId(assignmentID)}, {"$set": {"completed": 1}})
 						score = mongo.db.users.find_one({"username": session['username']})['score']
 						update = mongo.db.users.update_one({"username": session['username']}, {"$set": {"score": score+1}})
-						#score = db.execute("SELECT score FROM login WHERE userID=?", (userID,)).fetchall()[0][0]
-						#db.execute("UPDATE login SET score=? WHERE userID=?", (score+1, userID))
-						#db.execute("UPDATE uploads SET completed=1 WHERE userID=? AND assignmentID=?", (userID,assignmentID))
-						#db.commit()
 						return render_template("assignment.html", user=session['username'], title = a['title'], body = a['body'], date = date, assignmentID = assignmentID, grade=grade, comment="COMPLETED", code=code, output=output, language=language)
 				elif output:
 					return render_template("assignment.html", user=session['username'], title = a['title'], body = a['body'], date = date, assignmentID = assignmentID, grade=grade, comment=comment, code=code, output=output, language=language)
@@ -755,8 +731,7 @@ def about():
 @app.route('/scoreboard')
 def scoreboard():
 	db = getDB()
-	students = db.execute("SELECT firstName, lastName, score FROM login WHERE position='STUDENT'").fetchall()
-	print(students)
+	students = mongo.db.users.find({"position": "student"})
 	return render_template('scoreboard.html', scores = students)
 
 @app.teardown_appcontext
