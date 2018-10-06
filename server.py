@@ -395,16 +395,20 @@ def assignmentsID(assignmentID):
 		else:
 			completed = 0
 		filename = ""
-		language = "C++"
+		language = ""
 		f = mongo.db.uploads.find_one({"username": session['username'], "assignment": ObjectId(assignmentID)})
 		if f:
 			fexist = f['fileLocation']
 			if fexist:
 				filename = fexist
 				language = f['language']
+			else:
+				language = "C++"
 		ifilename = './userdirs/%s/infile' % session['username']
 		ofilename = './userdirs/%s/outfile' % session['username']
 		exe = './userdirs/%s/assignment%s-%s' % (session['username'], assignmentID, session['username'])
+		if os.path.exists(ofilename):
+				os.remove(ofilename)
 		if request.method == "POST":
 			language = request.form['language']
 			if not checkToday(unfdate):
@@ -440,9 +444,7 @@ def assignmentsID(assignmentID):
 					pass
 				elif language == "Python":
 					pass
-				submitted = mongo.db.uploads.find_one({"assignment": ObjectId(assignmentID), "username": session['username']})
-				if not submitted:
-					inserted = mongo.db.uploads.insert_one({"username": session["username"], "assignment": ObjectId(assignmentID), "fileLocation": filename, "type": "SUBMISSION", "language": language, "completed": 0}).inserted_id
+				inserted = mongo.db.uploads.insert_one({"username": session["username"], "assignment": ObjectId(assignmentID), "fileLocation": filename, "type": "SUBMISSION", "language": language, "completed": 0}).inserted_id
 				diffFile = "./userdirs/%s/diffFile" % session['username']
 				if os.path.exists(diffFile):
 					os.remove(diffFile)
@@ -454,11 +456,17 @@ def assignmentsID(assignmentID):
 					infile.close()
 					eOut.write(t['outputValue'])
 					if platform.system() == 'Linux':
-						exitstat = os.system('timeout %d %s < %s >> %s' % (timeout, exe, ifilename, ofilename))
+						if language == "C++" or language == "Go":
+							exitstat = os.system('timeout 60 {} < {} >> {}'.format(exe, ifilename, ofilename))
+						elif language == "Python":
+							exitstat = os.system('timeout 60 python3 {} < {} >> {}'.format(filename, ifilename, ofilename))
 						if os.WEXITSTATUS(exitstat) == 124:
-							os.system('echo "Program timed out on test %s" >> %s' % (t[0], diffFile))
+							os.system('echo "Program timed out on test {}" >> {}'.format(t[0], diffFile))
 					elif platform.system() == 'Darwin':
-						exitstat = os.system('gtimeout %d %s < %s >> %s' % (timeout, exe, ifilename, ofilename))
+						if language == "C++" or language == "Go":
+							exitstat = os.system('gtimeout 60 %s < %s >> %s' % (exe, ifilename, ofilename))
+						elif language == "Python":
+							exitstat = os.system('timeout 60 python3 %s < %s >> %s' % (filename, ifilename, ofilename))
 						if os.WEXITSTATUS(exitstat) == 124:
 							os.system('echo "Program timed out on test %s" >> %s' % (t[0], diffFile))
 				eOut.close()
@@ -474,8 +482,8 @@ def assignmentsID(assignmentID):
 						opfile = open(ofilename, "r")
 						output = opfile.read()
 						opfile.close()
-						if output:
-							os.remove(ofilename)
+						#if output:
+						#	os.remove(ofilename)
 				elif language == "Go":
 					pass
 				elif language == "Python":
@@ -521,8 +529,8 @@ def assignmentsID(assignmentID):
 			code = cfile.read()
 			cfile.close()
 		if completed:
-			return render_template("assignment.html", user=session['username'], title = a['title'], body = a['body'], date = date, assignmentID = assignmentID, grade=grade, comment="COMPLETED", code=code)
-		return render_template("assignment.html", user=session['username'], title = a['title'], body = a['body'], date = date, assignmentID = assignmentID, grade=grade, comment=comment, code=code)
+			return render_template("assignment.html", user=session['username'], title = a['title'], body = a['body'], date = date, assignmentID = assignmentID, comment="COMPLETED", code=code, language=language)
+		return render_template("assignment.html", user=session['username'], title = a['title'], body = a['body'], date = date, assignmentID = assignmentID, grade=grade, comment=comment, code=code, language=language)
 	elif utype == "instructor":
 		'''uploads = db.execute("SELECT login.firstName, login.lastName, login.userID, uploads.fileLocation FROM login NATURAL JOIN uploads WHERE uploads.assignmentID = ?", (assignmentID,)).fetchall()
 		userID = request.form.get('student')
