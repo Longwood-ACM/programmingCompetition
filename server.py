@@ -502,11 +502,17 @@ def assignmentsID(assignmentID):
 					infile.close()
 					eOut.write(t['outputValue'])
 					if platform.system() == 'Linux':
-						exitstat = os.system('timeout %d %s < %s >> %s' % (timeout, exe, ifilename, ofilename))
+						if language == "C++" or language == "Go":
+							exitstat = os.system('timeout 60 {} < {} >> {}'.format(exe, ifilename, ofilename))
+						elif language == "Python":
+							exitstat = os.system('timeout 60 python3 {} < {} >> {}'.format(filename, ifilename, ofilename))
 						if os.WEXITSTATUS(exitstat) == 124:
-							os.system('echo "Program timed out on test %s" >> %s' % (t[0], diffFile))
+							os.system('echo "Program timed out on test {}" >> {}'.format(t[0], diffFile))
 					elif platform.system() == 'Darwin':
-						exitstat = os.system('gtimeout %d %s < %s >> %s' % (timeout, exe, ifilename, ofilename))
+						if language == "C++" or language == "Go":
+							exitstat = os.system('gtimeout 60 %s < %s >> %s' % (exe, ifilename, ofilename))
+						elif language == "Python":
+							exitstat = os.system('timeout 60 python3 %s < %s >> %s' % (filename, ifilename, ofilename))
 						if os.WEXITSTATUS(exitstat) == 124:
 							os.system('echo "Program timed out on test %s" >> %s' % (t[0], diffFile))
 				eOut.close()
@@ -516,9 +522,9 @@ def assignmentsID(assignmentID):
 				outfile.close()
 				if not output:
 					#INCREMENT SCORE
-					completed = mongo.db.uploads.find_one({"assignment": ObjectId(assignmentID)})['completed']
+					completed = mongo.db.uploads.find_one({"username": session['username'], "assignment": ObjectId(assignmentID)})['completed']
 					if not completed:
-						completed = mongo.db.uploads.update_one({"assignment": ObjectId(assignmentID)}, {"$set": {"completed": 1}})
+						completed = mongo.db.uploads.update_one({"username": session['username'], "assignment": ObjectId(assignmentID)}, {"$set": {"completed": 1}})
 						score = mongo.db.users.find_one({"username": session['username']})['score']
 						update = mongo.db.users.update_one({"username": session['username']}, {"$set": {"score": score+1}})
 						return render_template("assignment.html", user=session['username'], title = a['title'], body = a['body'], date = date, assignmentID = assignmentID, grade=grade, comment="COMPLETED", code=code, output=output, language=language)

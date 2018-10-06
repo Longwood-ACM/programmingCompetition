@@ -9,3 +9,5 @@ userdirs/
 .DS_Store
 db/*
 mongolog*
+static/drawing\.svg
+static/score5\.svg
