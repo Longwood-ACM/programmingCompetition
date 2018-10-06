@@ -9,14 +9,16 @@
 <body>
 	<div>
 		<ul>
-			<li id="nav-logo"> <img id="logo" src="../static/logo.svg"></img></li>
+			<li id="nav-logo"> <img id="logo" src="../static/logo.svg" /></li>
 			<li id="nav-logout", style="float:right"><a href="{{url_for('root')}}"> Login </a></li>
 		</ul>
 	</div>
 	<div>
 		{% for s in scores %}
-			<img src="../static/score.svg"></img>
-			<p>{{s['firstName']|safe}} {{s['lastName']|safe}}</p>
+			<div>
+				<img width="400" height="400" src="../static/score.svg" style="float: left; padding: 10px" />
+				<span>{{s['firstName']|safe}} {{s['lastName']|safe}}</span>
+			</div>
 		{% endfor %}
 	</div>
 </body>

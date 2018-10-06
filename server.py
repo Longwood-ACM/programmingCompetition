@@ -162,14 +162,13 @@ def forgot():
 		db = getDB()
 		email = request.form['username']
 		exists = db.execute("SELECT userID FROM login WHERE email=?", (email,)).fetchall()
-		print(exists)
 		if exists:
 			userID = exists[0][0]
 			return redirect(url_for('forgot2', userID=userID))
 		return render_template('forgotpw.html', error="That user does not exists.")
 	return render_template('forgotpw.html')
 
-@app.route('/forgot2/<int:userID>', methods=['GET', 'POST'])
+@app.route('/forgot2/<userID>', methods=['GET', 'POST'])
 def forgot2(userID):
 	db = getDB()
 	question = db.execute("SELECT question FROM login WHERE userID = ?", (userID,)).fetchall()[0][0]
@@ -200,14 +199,22 @@ def forgot2(userID):
 def courses():
 	if checkLogged():
 		utype = mongo.db.users.find_one({"username": session['username']})['position']
-		print(utype)
 		if utype == 'instructor':
-			cs = db.execute("SELECT title, classID FROM class JOIN login on class.instructorID=login.userID WHERE login.email=?", (session['username'],)).fetchall()
-			for i in range(len(cs)):
-				cs.append(list(cs[i]))
-				cs[i].append(db.execute("SELECT assignment.title, assignment.assignmentID FROM assignment JOIN class ON class.classID=assignment.classID WHERE class.title=?", (cs[i][0],)).fetchall())
+			cs = []
+			i = 0
+			for c in mongo.db.courses.find({"instructor": session['username']}):
+				cc =[]
+				cc.append(c['title'])
+				cc.append(c['_id'])
+				assigns = []
+				for a in mongo.db.assignments.find({"class": c['_id']}):
+					cassign = []
+					cassign.append(a['title'])
+					cassign.append(str(a['_id']))
+					assigns.append(cassign)
+				cc.append(assigns)
+				cs.append(cc)		
 			return render_template('professor.html', user=session['username'], courses=cs)
-
 		elif utype == 'student':
 			cs = []
 			i = 0
@@ -221,7 +228,6 @@ def courses():
 					cassign.append(str(a['_id']))
 					assigns.append(cassign)
 				cc.append(assigns)
-				print(cc)
 				cs.append(cc)		
 			return render_template('courses.html', user=session['username'], courses=cs)
 	return redirect(url_for('root'))
@@ -282,7 +288,7 @@ def create():
 		return redirect(url_for('courses'))
 	return render_template('addcourse.html', user=session['username'])
 
-@app.route('/editCourse/<int:courseID>', methods=['GET', 'POST'])
+@app.route('/editCourse/<courseID>', methods=['GET', 'POST'])
 def editCourse(courseID):
 	if not checkLogged():
 		return home()
@@ -518,7 +524,7 @@ def assignmentsID(assignmentID):
 			return render_template("assignment.html", user=session['username'], title = a['title'], body = a['body'], date = date, assignmentID = assignmentID, grade=grade, comment="COMPLETED", code=code)
 		return render_template("assignment.html", user=session['username'], title = a['title'], body = a['body'], date = date, assignmentID = assignmentID, grade=grade, comment=comment, code=code)
 	elif utype == "instructor":
-		uploads = db.execute("SELECT login.firstName, login.lastName, login.userID, uploads.fileLocation FROM login NATURAL JOIN uploads WHERE uploads.assignmentID = ?", (assignmentID,)).fetchall()
+		'''uploads = db.execute("SELECT login.firstName, login.lastName, login.userID, uploads.fileLocation FROM login NATURAL JOIN uploads WHERE uploads.assignmentID = ?", (assignmentID,)).fetchall()
 		userID = request.form.get('student')
 		if userID == "default" or userID == None:
 			userID = -1
@@ -578,8 +584,8 @@ def assignmentsID(assignmentID):
 					os.remove(diffFile)
 				if os.path.exists(ifilename):
 					os.remove(ifilename)
-				return render_template("profAssignment.html", user=session['username'], title = a[0][1], body = a[0][2], date = date, code = request.form['code'], output = output, assignmentID = assignmentID, userID=userID, uploads=uploads)
-		return render_template("profAssignment.html", user=session['username'], title = a[0][1], body = a[0][2], date = date, assignmentID = assignmentID, userID = userID, uploads=uploads)
+				return render_template("profAssignment.html", user=session['username'], title = a[0][1], body = a[0][2], date = date, code = request.form['code'], output = output, assignmentID = assignmentID, userID=userID, uploads=uploads)'''
+		return render_template("profAssignment.html", user=session['username'], title = a['title'], body = a['body'], date = date, assignmentID = assignmentID)
 
 @app.route('/createAssignment/<courseID>', methods=['GET', 'POST'])
 def createAssignment(courseID):
@@ -609,11 +615,10 @@ def createAssignment(courseID):
 def editAssignment(assignmentID):
 	if not checkLogged():
 		return home()
-	if not checkInstructor():
+	info = mongo.db.assignments.find_one({"_id": ObjectId(assignmentID)})
+	cinfo = mongo.db.courses.find_one({"_id": info['class']})
+	if cinfo['instructor'] != session['username']:
 		return home()
-	if not checkOwnsAssign(assignmentID):
-		return home()
-	db = getDB()
 	if request.method == 'POST':
 		title = request.form['title']
 		body = request.form['assignmentDesc']
@@ -626,20 +631,22 @@ def editAssignment(assignmentID):
 		if not valiDate(unfdate):
 			return render_template('editassignment.html', title = title, body = body, date = undate, error = "Bad Date")
 		date = "%s-%s-%s" % (unfdate[2], unfdate[1], unfdate[0])
-		db.execute("UPDATE assignment SET title = ?, body = ?, dueDate=? WHERE assignmentID = ?", (title, body, date, assignmentID))
-		db.commit()
+		mongo.db.assignments.update_one({"_id": ObjectId(assignmentID)}, {"$set": {"title": title, "body": body, "dueDate": date}})
+		#db.execute("UPDATE assignment SET title = ?, body = ?, dueDate=? WHERE assignmentID = ?", (title, body, date, assignmentID))
+		#db.commit()
 		return redirect(url_for('courses'))
-	info = db.execute("SELECT * FROM assignment WHERE assignmentID = ?", (assignmentID,)).fetchall()
-	unfdate = info[0][4]
+	#info = db.execute("SELECT * FROM assignment WHERE assignmentID = ?", (assignmentID,)).fetchall()
+	unfdate = info['dueDate']
 	unfdate = unfdate.split("-")
 	date = "%s/%s/%s" % (unfdate[2], unfdate[1], unfdate[0])
-	return render_template('editassignment.html', title = info[0][1], body = info[0][2], date = date)
+	return render_template('editassignment.html', title = info['title'], body = info['body'], date = date)
 
 @app.route('/test/<assignmentID>', methods=["GET", "POST"])
 def test(assignmentID):
 	if not checkLogged():
 		return home()
 	u = mongo.db.users.find_one({"username": session['username']})
+	title = mongo.db.assignments.find_one({'_id': ObjectId(assignmentID)})['title']
 	if u['position'] == "student":
 		if request.method == "POST":
 			inpV = request.form['input'] + '\n'
@@ -660,7 +667,6 @@ def test(assignmentID):
 				c.append(case['outputValue'])
 				cases.append(c)
 			return render_template('testCases.html', user=session['username'], cases = cases, assignmentID=assignmentID)
-		title = mongo.db.assignments.find_one({'_id': ObjectId(assignmentID)})['title']
 		cases = []
 		for case in mongo.db.testCases.find({"username": session['username'], "assignment": ObjectId(assignmentID), "priv": "private"}):
 			c = []
@@ -668,8 +674,8 @@ def test(assignmentID):
 			c.append(case['outputValue'])
 			cases.append(c)
 		return render_template('testCases.html', user=session['username'], cases = cases, title = title, assignmentID=assignmentID)
-	elif utype == "INSTRUCTOR":
-		db = getDB()
+	elif u['position'] == "instructor":
+		'''db = getDB()
 		if request.method == "POST":
 			userID = db.execute("SELECT userID FROM login WHERE email=?", (session['username'],)).fetchall()[0][0]
 			inpV = request.form['input'] + '\n'
@@ -683,7 +689,13 @@ def test(assignmentID):
 			db.execute("INSERT INTO testCases(inputValue, outputValue, userID, type, assignmentID) VALUES(?, ?, ?, ?, ?)", (inpV, outV, userID, request.form['caseType'], assignmentID))
 			db.commit()
 		title = db.execute("SELECT title FROM assignment WHERE assignmentID=?", (assignmentID,)).fetchall()[0][0]
-		cases = db.execute("SELECT inputValue, outputValue FROM testCases WHERE assignmentID=? AND testCases.type='PUBLIC' OR testCases.type='HIDDEN'", (assignmentID,)).fetchall()
+		cases = db.execute("SELECT inputValue, outputValue FROM testCases WHERE assignmentID=? AND testCases.type='PUBLIC' OR testCases.type='HIDDEN'", (assignmentID,)).fetchall()'''
+		cases = []
+		if request.method == "POST":
+			inpv = request.form['input'] +'\n'
+			outv = request.form['output'] + '\n'
+			if not inpv and outv:
+				return render_template('professorCases.html', user=session['username'], cases = cases, input = inpV, output = outV, error = "Please add an input and output.") 
 		return render_template('professorCases.html', user=session['username'], cases = cases, title = title, assignmentID=assignmentID)
 
 @app.route('/grade/<assignmentID>/<userID>', methods=['GET', 'POST'])

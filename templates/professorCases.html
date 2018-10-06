@@ -12,6 +12,7 @@
 		<ul>
 			<li id="nav-logo"> <img id="logo" src="../static/logo.svg"></img></li>
 			<li id="nav-title"><a id="title" href="{{url_for('courses')}}">Courses</a></li>
+			<li id="nav-scoreboard"><a id="scoreboard" href="{{url_for('scoreboard')}}">Scoreboard</a></li>
 			<li id="nav-faq"><a id="faq" href="{{url_for('faq')}}">FAQ</a></li>
 			<li id="nav-about"><a href="{{url_for('about')}}">About</a> </li>
 			<li id="nav-logout", style="float:right"><a href="{{url_for('logout')}}"> Logout </a></li>
@@ -34,11 +35,6 @@
 			<br/>
 			</div>
 			<br/>
-			<div>
-				<b>Type of Test Case:</b><br/>
-				<input type="radio" name="caseType" value="PUBLIC">Public Case</input>
-				<input type="radio" name="caseType" value="HIDDEN">Hidden Case</input>
-			</div>
 			<br/> <br/>
 			<div name='errordiv' class='errmsg'>{{error}}</div>
 			<div style="width:100%; left:25%">

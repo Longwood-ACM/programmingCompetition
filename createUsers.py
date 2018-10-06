@@ -12,7 +12,7 @@ def createUsers():
 	password = md5("password".encode('utf-8')).hexdigest()
 	user ={"firstName": "Longwood",
 	"lastName": "ACM",
-	"inserted = password": password,
+	"password": password,
 	"username": "longwoodacm",
 	"position": "instructor",
 	"question": "petName",
@@ -68,16 +68,6 @@ def createUsers():
 	cinserted = courses.insert_one(course).inserted_id
 	print(cinserted)
 
-	course = {"instructor": "longwoodacm",
-	"title": "Programming Competition 2019",
-	"section": 1,
-	"semester": "Fall",
-	"year": 2019,
-	"students": ["Team1", "Team2"]
-	}
-	cinserted = courses.insert_one(course).inserted_id
-	print(cinserted)
-
 	assignments = db.assignments
 	assignment =[{"title": "Problem #0",
 	"body": "Placeholder",
@@ -123,44 +113,6 @@ def createUsers():
 	inserted = assignments.insert_many(assignment).inserted_ids
 	print(inserted)
 
-
-'''
-# Create the schema
-def createUsers():
-	conn = sqlite3.connect('acm.db')
-	c = conn.cursor()
-
-	password = md5("password".encode('utf-8')).hexdigest()
-	c.execute('INSERT INTO login(firstName, lastName, password, email, position, question, answer) VALUES("Longwood", "ACM", ?, "longwoodacm@gmail.com", "INSTRUCTOR", "petName", "Captain")',  (password,))
-	userdir = r'./userdirs/longwoodacm@gmail.com'
-	if not os.path.exists(userdir):
-		os.makedirs(userdir)
-
-	password = md5("password".encode('utf-8')).hexdigest()
-	c.execute('INSERT INTO login(firstName, lastName, password, email, position, question, answer, score) VALUES("First", "Team", ?, "Team1", "STUDENT", "petName", "Captain", 0)',  (password,))
-	userdir = r'./userdirs/Team1'
-	if not os.path.exists(userdir):
-		os.makedirs(userdir)
-
-	password = md5("password".encode('utf-8')).hexdigest()
-	c.execute('INSERT INTO login(firstName, lastName, password, email, position, question, answer, score) VALUES("Second", "Team", ?, "Team2", "STUDENT", "petName", "Captain", 0)',  (password,))
-	userdir = r'./userdirs/Team1'
-	if not os.path.exists(userdir):
-		os.makedirs(userdir)
-	
-	c.execute('INSERT INTO class(instructorID, title, section, semester, year) VALUES(1, "Programming Competition 2018", 1, "Fall", 2018)')
-	
-	c.execute('INSERT INTO takes(userID, classID) VALUES(2, 1)')
-	c.execute('INSERT INTO takes(userID, classID) VALUES(3, 1)')
-
-
-	c.execute('INSERT INTO assignment(title, body, classID, dueDate) VALUES("Problem #1","Placeholder", 1, "2018-10-10")')
-
-
-	conn.commit()
-	conn.close()
-'''
-# Could put more in later
 def main():
 	createUsers()
 
