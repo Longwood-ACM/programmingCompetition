@@ -255,3 +255,9 @@ li a:hover {
 	width:40%;
 	height: 3vw;
 }
+
+div.score{
+	text-align: center;
+	float: left;
+	margin: 10px;
+}

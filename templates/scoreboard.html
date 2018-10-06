@@ -15,9 +15,9 @@
 	</div>
 	<div>
 		{% for s in scores %}
-			<div>
-				<img width="400" height="400" src="../static/score.svg" style="float: left; padding: 10px" />
-				<span>{{s['firstName']|safe}} {{s['lastName']|safe}}</span>
+			<div class="score">
+				<img width="400" height="400" src="../static/score.svg" style="padding: 10px" />
+				<p>{{s['firstName']|safe}} {{s['lastName']|safe}}</p>
 			</div>
 		{% endfor %}
 	</div>

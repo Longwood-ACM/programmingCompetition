@@ -634,7 +634,8 @@ def editAssignment(assignmentID):
 		mongo.db.assignments.update_one({"_id": ObjectId(assignmentID)}, {"$set": {"title": title, "body": body, "dueDate": date}})
 		#db.execute("UPDATE assignment SET title = ?, body = ?, dueDate=? WHERE assignmentID = ?", (title, body, date, assignmentID))
 		#db.commit()
-		return redirect(url_for('courses'))
+		#return redirect(url_for('courses'))
+		return render_template('editassignment.html', title = info['title'], body = info['body'], date = date)
 	#info = db.execute("SELECT * FROM assignment WHERE assignmentID = ?", (assignmentID,)).fetchall()
 	unfdate = info['dueDate']
 	unfdate = unfdate.split("-")
@@ -675,27 +676,19 @@ def test(assignmentID):
 			cases.append(c)
 		return render_template('testCases.html', user=session['username'], cases = cases, title = title, assignmentID=assignmentID)
 	elif u['position'] == "instructor":
-		'''db = getDB()
-		if request.method == "POST":
-			userID = db.execute("SELECT userID FROM login WHERE email=?", (session['username'],)).fetchall()[0][0]
-			inpV = request.form['input'] + '\n'
-			outV = request.form['output'] + '\n'
-			if not inpV and outV:
-				return render_template('professorCases.html', user=session['username'], cases = cases, input = inpV, output = outV, error = "Please add an input and output.") 
-			exists = db.execute("SELECT testID FROM testCases WHERE inputValue = ? AND outputValue = ? AND (type = 'HIDDEN' OR type = 'PUBLIC')", (inpV, outV)).fetchall()
-			if exists:
-				cases = db.execute("SELECT inputValue, outputValue FROM testCases WHERE testCases.type='PUBLIC' OR testCases.type='HIDDEN')", (session['username'],)).fetchall()
-				return render_template('professorCases.html', user=session['username'], cases = cases, input = inpV, output = outV, error = "Test Case already exists.", assignmentID=assignmentID) 
-			db.execute("INSERT INTO testCases(inputValue, outputValue, userID, type, assignmentID) VALUES(?, ?, ?, ?, ?)", (inpV, outV, userID, request.form['caseType'], assignmentID))
-			db.commit()
-		title = db.execute("SELECT title FROM assignment WHERE assignmentID=?", (assignmentID,)).fetchall()[0][0]
-		cases = db.execute("SELECT inputValue, outputValue FROM testCases WHERE assignmentID=? AND testCases.type='PUBLIC' OR testCases.type='HIDDEN'", (assignmentID,)).fetchall()'''
 		cases = []
 		if request.method == "POST":
 			inpv = request.form['input'] +'\n'
 			outv = request.form['output'] + '\n'
 			if not inpv and outv:
-				return render_template('professorCases.html', user=session['username'], cases = cases, input = inpV, output = outV, error = "Please add an input and output.") 
+				return render_template('professorCases.html', user=session['username'], cases = cases, input = inpV, output = outV, error = "Please add an input and output.")
+			if not mongo.db.testCases.find_one({"username": session['username'], "assignment": ObjectId(assignmentID), "inputValue": inpv, "outputValue": outv, "priv": 'hidden'}):
+				mongo.db.testCases.insert_one({"username": session['username'], "assignment": ObjectId(assignmentID), "inputValue": inpv, "outputValue": outv, "priv": 'hidden'})
+		for case in mongo.db.testCases.find({"assignment": ObjectId(assignmentID), "priv": "hidden"}):
+			c = []
+			c.append(case['inputValue'])
+			c.append(case['outputValue'])
+			cases.append(c)
 		return render_template('professorCases.html', user=session['username'], cases = cases, title = title, assignmentID=assignmentID)
 
 @app.route('/grade/<assignmentID>/<userID>', methods=['GET', 'POST'])
