@@ -1,4 +1,5 @@
 .git/
+*.db
 __pycache__
 server.pyc
 foobar.db
